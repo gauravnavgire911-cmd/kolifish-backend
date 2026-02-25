@@ -14,7 +14,7 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS (set CORS_ORIGINS in Heroku Config Vars)
+// CORS (set CORS_ORIGINS in Render Env Vars)
 const allowedOrigins = (process.env.CORS_ORIGINS || "")
   .split(",")
   .map((s) => s.trim())
@@ -26,7 +26,7 @@ app.use(
       // allow Postman/curl (no origin)
       if (!origin) return cb(null, true);
 
-      // if no CORS_ORIGINS set, allow all (not recommended for prod)
+      // if no CORS_ORIGINS set, allow all (ok for testing)
       if (!allowedOrigins.length) return cb(null, true);
 
       if (allowedOrigins.includes(origin)) return cb(null, true);
@@ -37,8 +37,18 @@ app.use(
 );
 
 // ----- Routes -----
+
+// ✅ Root route (so base URL works)
+app.get("/", (req, res) => {
+  res.send("Backend is running ✅");
+});
+
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, service: "kolifish-backend", time: new Date().toISOString() });
+  res.json({
+    ok: true,
+    service: "kolifish-backend",
+    time: new Date().toISOString(),
+  });
 });
 
 app.use("/api/products", productsRoutes);
