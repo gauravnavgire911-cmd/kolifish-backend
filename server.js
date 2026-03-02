@@ -6,42 +6,64 @@ dotenv.config();
 
 const connectDB = require("./config/db");
 const productsRoutes = require("./routes/products");
+const uploadRoutes = require("./routes/upload.js");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
 
-// ----- Middlewares -----
-app.use(express.json({ limit: "1mb" }));
+// ----- Body parsers -----
+app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS (set CORS_ORIGINS in Render Env Vars)
-const allowedOrigins = (process.env.CORS_ORIGINS || "")
+// ----- CORS -----
+// IMPORTANT: We MERGE env origins with defaults (do NOT override defaults)
+const defaultAllowed = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://kolifish.com",
+  "https://www.kolifish.com",
+];
+
+const envAllowed = (process.env.CORS_ORIGINS || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 
-app.use(
-  cors({
-    origin: function (origin, cb) {
-      // allow Postman/curl (no origin)
-      if (!origin) return cb(null, true);
+// Merge + dedupe
+const allowedOrigins = Array.from(new Set([...defaultAllowed, ...envAllowed]));
 
-      // if no CORS_ORIGINS set, allow all (ok for testing)
-      if (!allowedOrigins.length) return cb(null, true);
+// Allow any *.netlify.app preview deploys too
+const isNetlify = (origin) => {
+  try {
+    const u = new URL(origin);
+    return u.hostname.endsWith(".netlify.app");
+  } catch {
+    return false;
+  }
+};
 
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error("Not allowed by CORS: " + origin));
-    },
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin: (origin, cb) => {
+    // allow requests with no origin (curl/postman/server-to-server)
+    if (!origin) return cb(null, true);
+
+    if (allowedOrigins.includes(origin) || isNetlify(origin)) {
+      return cb(null, true);
+    }
+
+    // Return false instead of throwing error (prevents “no CORS header” confusion)
+    return cb(null, false);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // ----- Routes -----
-
-// ✅ Root route (so base URL works)
-app.get("/", (req, res) => {
-  res.send("Backend is running ✅");
-});
+app.get("/", (req, res) => res.send("Backend is running ✅"));
 
 app.get("/api/health", (req, res) => {
   res.json({
@@ -52,8 +74,9 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/products", productsRoutes);
+app.use("/api/upload", uploadRoutes);
 
-// ----- Error handling -----
+// ----- Errors -----
 app.use(notFound);
 app.use(errorHandler);
 
@@ -66,19 +89,16 @@ const PORT = process.env.PORT || 5000;
 
     const server = app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log("✅ Allowed CORS origins:", allowedOrigins);
+      console.log("✅ Netlify *.netlify.app allowed:", true);
     });
 
-    // Graceful shutdown
     const shutdown = async (signal) => {
       console.log(`\n🛑 ${signal} received. Shutting down gracefully...`);
       try {
         const mongoose = require("mongoose");
         await mongoose.connection.close();
-
-        server.close(() => {
-          console.log("✅ Server closed. Bye!");
-          process.exit(0);
-        });
+        server.close(() => process.exit(0));
       } catch (e) {
         console.log("❌ Error during shutdown:", e.message);
         process.exit(1);

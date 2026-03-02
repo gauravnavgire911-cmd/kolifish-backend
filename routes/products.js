@@ -2,48 +2,182 @@ const express = require("express");
 const Product = require("../models/Product");
 const router = express.Router();
 
-// Seed route to add sample products
+// ============================================
+// SEED PRODUCTS (TEMP - PROTECT LATER)
+// NOTE: Keep this ABOVE "/:id"
+// ============================================
 router.post("/seed", async (req, res) => {
   try {
     const products = [
       {
-        name: "Bombay Duck",
-        price: 150.0,
+        name: "Bombay Duck (Bombil)",
+        price: 150,
         description:
-          "Fresh, sustainably sourced Bombay Duck from Maharashtra's coastal regions. A delicacy in local cuisine.",
+          "Fresh, sustainably sourced Bombay Duck from Maharashtra's coastal regions.",
         image: "https://kolifish.com/images/bombay-duck.jpg",
         category: "Saltwater Fish",
+        isActive: true,
       },
       {
         name: "Pomfret",
-        price: 250.0,
+        price: 250,
         description:
-          "Premium white pomfret, known for its delicate flavor and flaky texture. Ideal for grilling or curries.",
+          "Premium white pomfret, known for its delicate flavor and flaky texture.",
         image: "https://kolifish.com/images/pomfret.jpg",
         category: "Saltwater Fish",
+        isActive: true,
+      },
+      {
+        name: "Hilsa",
+        price: 350,
+        description: "Popular Hilsa fish, prized for its rich taste.",
+        image: "https://kolifish.com/images/hilsa.jpg",
+        category: "Saltwater Fish",
+        isActive: true,
+      },
+      {
+        name: "Surmai (King Fish)",
+        price: 400,
+        description: "King fish known for its firm texture and rich flavor.",
+        image: "https://kolifish.com/images/surmai.jpg",
+        category: "Saltwater Fish",
+        isActive: true,
+      },
+      {
+        name: "Rohu",
+        price: 120,
+        description: "Freshwater Rohu fish, perfect for Indian dishes.",
+        image: "https://kolifish.com/images/rohu.jpg",
+        category: "Freshwater Fish",
+        isActive: true,
+      },
+      {
+        name: "Catla",
+        price: 130,
+        description: "Large freshwater Catla, ideal for festive meals.",
+        image: "https://kolifish.com/images/catla.jpg",
+        category: "Freshwater Fish",
+        isActive: true,
+      },
+      {
+        name: "Prawns (Large)",
+        price: 450,
+        description: "Fresh large prawns, perfect for biryani and curries.",
+        image: "https://kolifish.com/images/prawns.jpg",
+        category: "Shellfish",
+        isActive: true,
+      },
+      {
+        name: "Crabs",
+        price: 300,
+        description: "Fresh water crabs, meaty and delicious.",
+        image: "https://kolifish.com/images/crabs.jpg",
+        category: "Shellfish",
+        isActive: true,
+      },
+      {
+        name: "Dry Fish (Bombay Duck)",
+        price: 200,
+        description:
+          "Sun-dried Bombay Duck, traditional Maharashtrian delicacy.",
+        image: "https://kolifish.com/images/dry-fish.jpg",
+        category: "Dry Fish",
+        isActive: true,
+      },
+      {
+        name: "Fish Aquarium (Medium)",
+        price: 2500,
+        description: "Medium-sized glass aquarium for home.",
+        image: "https://kolifish.com/images/aquarium.jpg",
+        category: "Aquarium",
+        isActive: true,
+      },
+      {
+        name: "Fish Food (1kg)",
+        price: 150,
+        description: "Nutritious fish food for all types of fish.",
+        image: "https://kolifish.com/images/fish-food.jpg",
+        category: "Fish Food",
+        isActive: true,
+      },
+      {
+        name: "Fish Medicine",
+        price: 100,
+        description: "General medicine for fish health.",
+        image: "https://kolifish.com/images/medicine.jpg",
+        category: "Medicine",
+        isActive: true,
       },
     ];
 
-    await Product.deleteMany({});
-    const insertedProducts = await Product.insertMany(products);
+    // Option A: only insert new ones, avoid duplicates by name
+    // (Recommended)
+    const existing = await Product.find({}, { name: 1 });
+    const existingNames = new Set(existing.map((p) => p.name));
 
-    return res.json({
-      msg: "Fish products added successfully",
-      insertedCount: insertedProducts.length,
+    const toInsert = products.filter((p) => !existingNames.has(p.name));
+
+    if (toInsert.length === 0) {
+      return res.json({
+        success: true,
+        message: "No new products to seed (all already exist).",
+        inserted: 0,
+      });
+    }
+
+    const createdProducts = await Product.insertMany(toInsert);
+
+    res.json({
+      success: true,
+      message: `${createdProducts.length} products seeded successfully`,
+      inserted: createdProducts.length,
+      products: createdProducts,
     });
   } catch (error) {
-    console.error("Error in seeding products:", error);
-    return res.status(500).json({ msg: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 });
 
-// GET all products
+// ============================================
+// GET ALL PRODUCTS (Public)
+// ============================================
 router.get("/", async (req, res) => {
   try {
-    const products = await Product.find();
-    return res.json(products);
+    const products = await Product.find({ isActive: true });
+
+    // Return array ONLY (simpler for frontend)
+    res.json(products);
   } catch (error) {
-    return res.status(500).json({ msg: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// ============================================
+// GET SINGLE PRODUCT (Public)
+// ============================================
+router.get("/:id", async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 });
 
