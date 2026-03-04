@@ -2,177 +2,245 @@ const express = require("express");
 const Product = require("../models/Product");
 const router = express.Router();
 
-// ============================================
-// SEED PRODUCTS (TEMP - PROTECT LATER)
-// NOTE: Keep this ABOVE "/:id"
-// ============================================
+/*
+============================================
+PRODUCTS SEED
+============================================
+- Clean reset (removes old products)
+- Seeds popular seafood for Mumbai/Raigad/Pune/Nashik
+- Automatically sets pricePerKg
+- Ensures schema fields exist
+*/
+
 router.post("/seed", async (req, res) => {
   try {
+
     const products = [
+
+      // SALTWATER
       {
-        name: "Bombay Duck (Bombil)",
-        price: 150,
-        description:
-          "Fresh, sustainably sourced Bombay Duck from Maharashtra's coastal regions.",
-        image: "https://kolifish.com/images/bombay-duck.jpg",
-        category: "Saltwater Fish",
-        isActive: true,
+        name: "Pomfret (Paplet)",
+        price: 650,
+        description: "Premium white pomfret — delicate, flaky, restaurant quality.",
+        image: "https://res.cloudinary.com/drlcmjc8n/image/upload/v1772648431/paplet1_gl4d43.jpg",
+        category: "Saltwater Fish"
       },
       {
-        name: "Pomfret",
-        price: 250,
-        description:
-          "Premium white pomfret, known for its delicate flavor and flaky texture.",
-        image: "https://kolifish.com/images/pomfret.jpg",
-        category: "Saltwater Fish",
-        isActive: true,
+        name: "Black Pomfret (Halwa)",
+        price: 520,
+        description: "Black pomfret (Halwa) — rich taste, great for fry and curry.",
+        image: "https://kolifish.com/images/black-pomfret.jpg",
+        category: "Saltwater Fish"
       },
       {
-        name: "Hilsa",
-        price: 350,
-        description: "Popular Hilsa fish, prized for its rich taste.",
-        image: "https://kolifish.com/images/hilsa.jpg",
-        category: "Saltwater Fish",
-        isActive: true,
+        name: "Mackerel (Bangda)",
+        price: 240,
+        description: "Mumbai favorite Bangda — best for fry, rava fry and curry.",
+        image: "https://kolifish.com/images/mackerel.jpg",
+        category: "Saltwater Fish"
+      },
+      {
+        name: "Sardine (Tarli)",
+        price: 220,
+        description: "Tarli — soft, flavorful, ideal for spicy curry and fry.",
+        image: "https://kolifish.com/images/sardine.jpg",
+        category: "Saltwater Fish"
       },
       {
         name: "Surmai (King Fish)",
-        price: 400,
-        description: "King fish known for its firm texture and rich flavor.",
+        price: 720,
+        description: "Surmai steaks — firm texture, premium taste.",
         image: "https://kolifish.com/images/surmai.jpg",
-        category: "Saltwater Fish",
-        isActive: true,
+        category: "Saltwater Fish"
       },
       {
-        name: "Rohu",
-        price: 120,
-        description: "Freshwater Rohu fish, perfect for Indian dishes.",
+        name: "Rawas (Indian Salmon)",
+        price: 780,
+        description: "Rawas — soft & juicy, perfect for tawa fry.",
+        image: "https://kolifish.com/images/rawas.jpg",
+        category: "Saltwater Fish"
+      },
+      {
+        name: "Bombay Duck (Bombil)",
+        price: 220,
+        description: "Bombil — crispy fry favorite.",
+        image: "https://kolifish.com/images/bombay-duck.jpg",
+        category: "Saltwater Fish"
+      },
+      {
+        name: "Tuna (Kupa)",
+        price: 420,
+        description: "Kupa — meaty fish ideal for curry.",
+        image: "https://kolifish.com/images/tuna.jpg",
+        category: "Saltwater Fish"
+      },
+      {
+        name: "Squid (Kalmar)",
+        price: 520,
+        description: "Kalmar — tender rings perfect for fry.",
+        image: "https://kolifish.com/images/squid.jpg",
+        category: "Saltwater Fish"
+      },
+      {
+        name: "Octopus (Bebdo)",
+        price: 650,
+        description: "Bebdo — cleaned octopus for slow cooking.",
+        image: "https://kolifish.com/images/octopus.jpg",
+        category: "Saltwater Fish"
+      },
+
+      // SHELLFISH
+      {
+        name: "Prawns (Kolambi) — Medium",
+        price: 540,
+        description: "Medium Kolambi — perfect for curry and biryani.",
+        image: "https://kolifish.com/images/prawns-medium.jpg",
+        category: "Shellfish"
+      },
+      {
+        name: "Prawns (Kolambi) — Large",
+        price: 780,
+        description: "Large Kolambi — premium size prawns.",
+        image: "https://kolifish.com/images/prawns-large.jpg",
+        category: "Shellfish"
+      },
+      {
+        name: "Crab (Chimbori)",
+        price: 480,
+        description: "Chimbori — meaty crab perfect for spicy curry.",
+        image: "https://kolifish.com/images/crab.jpg",
+        category: "Shellfish"
+      },
+      {
+        name: "Clams (Tisrya)",
+        price: 260,
+        description: "Tisrya — traditional coastal seafood.",
+        image: "https://kolifish.com/images/clams.jpg",
+        category: "Shellfish"
+      },
+      {
+        name: "Mussels (Khube)",
+        price: 320,
+        description: "Khube — cleaned mussels for coconut curries.",
+        image: "https://kolifish.com/images/mussels.jpg",
+        category: "Shellfish"
+      },
+
+      // FRESHWATER
+      {
+        name: "Rohu (Rui)",
+        price: 180,
+        description: "Classic freshwater fish for curry.",
         image: "https://kolifish.com/images/rohu.jpg",
-        category: "Freshwater Fish",
-        isActive: true,
+        category: "Freshwater Fish"
       },
       {
-        name: "Catla",
-        price: 130,
-        description: "Large freshwater Catla, ideal for festive meals.",
+        name: "Catla (Katla)",
+        price: 190,
+        description: "Katla — thick cuts ideal for meals.",
         image: "https://kolifish.com/images/catla.jpg",
-        category: "Freshwater Fish",
-        isActive: true,
+        category: "Freshwater Fish"
       },
       {
-        name: "Prawns (Large)",
-        price: 450,
-        description: "Fresh large prawns, perfect for biryani and curries.",
-        image: "https://kolifish.com/images/prawns.jpg",
-        category: "Shellfish",
-        isActive: true,
+        name: "Tilapia",
+        price: 170,
+        description: "Mild fish perfect for fry.",
+        image: "https://kolifish.com/images/tilapia.jpg",
+        category: "Freshwater Fish"
       },
       {
-        name: "Crabs",
-        price: 300,
-        description: "Fresh water crabs, meaty and delicious.",
-        image: "https://kolifish.com/images/crabs.jpg",
-        category: "Shellfish",
-        isActive: true,
+        name: "Pangasius (Basa)",
+        price: 210,
+        description: "Basa — boneless fillet fish.",
+        image: "https://kolifish.com/images/basa.jpg",
+        category: "Freshwater Fish"
       },
       {
-        name: "Dry Fish (Bombay Duck)",
-        price: 200,
-        description:
-          "Sun-dried Bombay Duck, traditional Maharashtrian delicacy.",
-        image: "https://kolifish.com/images/dry-fish.jpg",
-        category: "Dry Fish",
-        isActive: true,
+        name: "Murrel (Gavti / Shevto)",
+        price: 520,
+        description: "Premium freshwater Murrel.",
+        image: "https://kolifish.com/images/murrel.jpg",
+        category: "Freshwater Fish"
+      },
+
+      // DRY FISH
+      {
+        name: "Dry Fish — Bombay Duck (Sukat Bombil)",
+        price: 420,
+        description: "Traditional Maharashtrian dried bombil.",
+        image: "https://kolifish.com/images/dry-bombay-duck.jpg",
+        category: "Dry Fish"
       },
       {
-        name: "Fish Aquarium (Medium)",
-        price: 2500,
-        description: "Medium-sized glass aquarium for home.",
-        image: "https://kolifish.com/images/aquarium.jpg",
-        category: "Aquarium",
-        isActive: true,
-      },
-      {
-        name: "Fish Food (1kg)",
-        price: 150,
-        description: "Nutritious fish food for all types of fish.",
-        image: "https://kolifish.com/images/fish-food.jpg",
-        category: "Fish Food",
-        isActive: true,
-      },
-      {
-        name: "Fish Medicine",
-        price: 100,
-        description: "General medicine for fish health.",
-        image: "https://kolifish.com/images/medicine.jpg",
-        category: "Medicine",
-        isActive: true,
-      },
+        name: "Dry Fish — Prawns (Sukat Kolambi)",
+        price: 520,
+        description: "Dried prawns used in chutneys.",
+        image: "https://kolifish.com/images/dry-prawns.jpg",
+        category: "Dry Fish"
+      }
+
     ];
 
-    // Option A: only insert new ones, avoid duplicates by name
-    // (Recommended)
-    const existing = await Product.find({}, { name: 1 });
-    const existingNames = new Set(existing.map((p) => p.name));
+    // Normalize fields required by schema
+    const normalizedProducts = products.map(p => ({
+      ...p,
+      pricePerKg: p.price,
+      unit: "kg",
+      stock: 999,
+      minOrderQty: 1,
+      availability: "in_stock",
+      freshness: "Fresh",
+      isActive: true
+    }));
 
-    const toInsert = products.filter((p) => !existingNames.has(p.name));
+    // CLEAN RESET
+    await Product.deleteMany({});
 
-    if (toInsert.length === 0) {
-      return res.json({
-        success: true,
-        message: "No new products to seed (all already exist).",
-        inserted: 0,
-      });
-    }
-
-    const createdProducts = await Product.insertMany(toInsert);
+    const created = await Product.insertMany(normalizedProducts);
 
     res.json({
       success: true,
-      message: `${createdProducts.length} products seeded successfully`,
-      inserted: createdProducts.length,
-      products: createdProducts,
+      message: `${created.length} products seeded successfully`,
+      inserted: created.length,
+      products: created
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message
     });
   }
 });
 
-// ============================================
-// GET ALL PRODUCTS (Public)
-// ============================================
 
+/*
+============================================
+GET ALL PRODUCTS
+============================================
+*/
 router.get("/", async (req, res) => {
   try {
+
     const { limit, category, search } = req.query;
 
-    // Base query
     const query = { isActive: true };
 
-    // Filter by category
-    if (category) {
-      query.category = category;
-    }
+    if (category) query.category = category;
 
-    // Search by name (case-insensitive)
     if (search) {
       query.name = { $regex: search, $options: "i" };
     }
 
-    // Safe limit (max 500)
     const safeLimit = Math.min(Number(limit) || 200, 500);
 
     const products = await Product.find(query)
-      .sort({ createdAt: -1, _id: -1 }) // newest first
+      .sort({ createdAt: -1 })
       .limit(safeLimit);
 
-    res.status(200).json(products);
+    res.json(products);
 
   } catch (error) {
-    console.error("GET /products error:", error);
     res.status(500).json({
       success: false,
       message: "Server error while fetching products"
@@ -180,25 +248,30 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ============================================
-// GET SINGLE PRODUCT (Public)
-// ============================================
+
+/*
+============================================
+GET SINGLE PRODUCT
+============================================
+*/
 router.get("/:id", async (req, res) => {
   try {
+
     const product = await Product.findById(req.params.id);
 
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: "Product not found",
+        message: "Product not found"
       });
     }
 
     res.json(product);
+
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message
     });
   }
 });

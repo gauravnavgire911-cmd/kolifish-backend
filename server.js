@@ -19,6 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 // IMPORTANT: We MERGE env origins with defaults (do NOT override defaults)
 const defaultAllowed = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "http://localhost:3000",
   "https://kolifish.com",
   "https://www.kolifish.com",
@@ -47,19 +48,25 @@ const corsOptions = {
     // allow requests with no origin (curl/postman/server-to-server)
     if (!origin) return cb(null, true);
 
+    // allow known origins + netlify previews
     if (allowedOrigins.includes(origin) || isNetlify(origin)) {
       return cb(null, true);
     }
 
-    // Return false instead of throwing error (prevents “no CORS header” confusion)
-    return cb(null, false);
+    // IMPORTANT: throw an error so you can SEE which origin is blocked,
+    // and avoid the "no CORS header" confusion.
+    return cb(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
 };
 
+// Apply CORS BEFORE routes
 app.use(cors(corsOptions));
+
+// Preflight handling for all routes
 app.options("*", cors(corsOptions));
 
 // ----- Routes -----
@@ -77,6 +84,14 @@ app.use("/api/products", productsRoutes);
 app.use("/api/upload", uploadRoutes);
 
 // ----- Errors -----
+// Handle CORS error nicely (so frontend gets a clear message)
+app.use((err, req, res, next) => {
+  if (err && err.message && err.message.startsWith("CORS blocked")) {
+    return res.status(403).json({ success: false, message: err.message });
+  }
+  return next(err);
+});
+
 app.use(notFound);
 app.use(errorHandler);
 
