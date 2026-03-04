@@ -144,16 +144,38 @@ router.post("/seed", async (req, res) => {
 // ============================================
 // GET ALL PRODUCTS (Public)
 // ============================================
+
 router.get("/", async (req, res) => {
   try {
-    const products = await Product.find({ isActive: true });
+    const { limit, category, search } = req.query;
 
-    // Return array ONLY (simpler for frontend)
-    res.json(products);
+    // Base query
+    const query = { isActive: true };
+
+    // Filter by category
+    if (category) {
+      query.category = category;
+    }
+
+    // Search by name (case-insensitive)
+    if (search) {
+      query.name = { $regex: search, $options: "i" };
+    }
+
+    // Safe limit (max 500)
+    const safeLimit = Math.min(Number(limit) || 200, 500);
+
+    const products = await Product.find(query)
+      .sort({ createdAt: -1, _id: -1 }) // newest first
+      .limit(safeLimit);
+
+    res.status(200).json(products);
+
   } catch (error) {
+    console.error("GET /products error:", error);
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Server error while fetching products"
     });
   }
 });
