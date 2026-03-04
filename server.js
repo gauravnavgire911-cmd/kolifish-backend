@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
+const DEPLOY_VERSION = "cors-fix-2026-03-05-01";
 const connectDB = require("./config/db");
 const productsRoutes = require("./routes/products");
 const uploadRoutes = require("./routes/upload.js");
@@ -70,16 +71,15 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 // ----- Routes -----
-app.get("/", (req, res) => res.send("Backend is running ✅"));
-
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
     service: "kolifish-backend",
     time: new Date().toISOString(),
+    version: DEPLOY_VERSION,
+    cors_origins: allowedOrigins,
   });
 });
-
 app.use("/api/products", productsRoutes);
 app.use("/api/upload", uploadRoutes);
 
