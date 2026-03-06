@@ -4,19 +4,34 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-const DEPLOY_VERSION = "api-route-check-2026-03-07-01";
+// --------------------------------------------------
+// Constants
+// --------------------------------------------------
+const DEPLOY_VERSION = "api-route-check-2026-03-07-02";
+const PORT = process.env.PORT || 5000;
+
+// --------------------------------------------------
+// Local imports
+// --------------------------------------------------
 const connectDB = require("./config/db");
 const productsRoutes = require("./routes/products");
 const uploadRoutes = require("./routes/upload.js");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
+// --------------------------------------------------
+// App init
+// --------------------------------------------------
 const app = express();
 
-// ----- Body parsers -----
+// --------------------------------------------------
+// Body parsers
+// --------------------------------------------------
 app.use(express.json({ limit: "5mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
-// ----- CORS -----
+// --------------------------------------------------
+// CORS config
+// --------------------------------------------------
 const defaultAllowed = [
   "http://localhost:5173",
   "http://localhost:5174",
@@ -32,40 +47,41 @@ const envAllowed = (process.env.CORS_ORIGINS || "")
 
 const allowedOrigins = Array.from(new Set([...defaultAllowed, ...envAllowed]));
 
-const isNetlify = (origin) => {
+function isNetlify(origin) {
   try {
-    const u = new URL(origin);
-    return u.hostname.endsWith(".netlify.app");
+    const url = new URL(origin);
+    return url.hostname.endsWith(".netlify.app");
   } catch {
     return false;
   }
-};
+}
 
-const isVercel = (origin) => {
+function isVercel(origin) {
   try {
-    const u = new URL(origin);
-    return u.hostname.endsWith(".vercel.app");
+    const url = new URL(origin);
+    return url.hostname.endsWith(".vercel.app");
   } catch {
     return false;
   }
-};
+}
 
 const corsOptions = {
-  origin: (origin, cb) => {
+  origin(origin, cb) {
+    // Allow requests without Origin header
+    // (Postman, curl, server-to-server)
     if (!origin) return cb(null, true);
 
-    if (
+    const isAllowed =
       allowedOrigins.includes(origin) ||
       isNetlify(origin) ||
-      isVercel(origin)
-    ) {
-      return cb(null, true);
-    }
+      isVercel(origin);
+
+    if (isAllowed) return cb(null, true);
 
     return cb(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
   allowedHeaders: ["Content-Type", "Authorization"],
   optionsSuccessStatus: 204,
 };
@@ -73,9 +89,11 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
-// ----- Basic routes -----
+// --------------------------------------------------
+// Basic routes
+// --------------------------------------------------
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     ok: true,
     message: "KoliFish backend is running",
     version: DEPLOY_VERSION,
@@ -83,63 +101,99 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
-  res.json({
+  res.status(200).json({
     ok: true,
     service: "kolifish-backend",
-    time: new Date().toISOString(),
     version: DEPLOY_VERSION,
+    time: new Date().toISOString(),
     cors_origins: allowedOrigins,
   });
 });
 
-// ----- API routes -----
+// --------------------------------------------------
+// API routes
+// --------------------------------------------------
 app.use("/api/products", productsRoutes);
 app.use("/api/upload", uploadRoutes);
 
-// ----- Errors -----
+// --------------------------------------------------
+// CORS error handler
+// --------------------------------------------------
 app.use((err, req, res, next) => {
-  if (err && err.message && err.message.startsWith("CORS blocked")) {
-    return res.status(403).json({ success: false, message: err.message });
+  if (err?.message?.startsWith("CORS blocked")) {
+    return res.status(403).json({
+      success: false,
+      message: err.message,
+    });
   }
   return next(err);
 });
 
+// --------------------------------------------------
+// App error handlers
+// --------------------------------------------------
 app.use(notFound);
 app.use(errorHandler);
 
-// ----- Start -----
-const PORT = process.env.PORT || 5000;
+// --------------------------------------------------
+// Graceful shutdown
+// --------------------------------------------------
+async function gracefulShutdown(signal, server) {
+  console.log(`\n🛑 ${signal} received. Shutting down gracefully...`);
 
-(async function start() {
   try {
+    const mongoose = require("mongoose");
+
+    if (server) {
+      await new Promise((resolve, reject) => {
+        server.close((err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    }
+
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.connection.close();
+      console.log("✅ MongoDB connection closed");
+    }
+
+    console.log("✅ Server shut down cleanly");
+    process.exit(0);
+  } catch (err) {
+    console.error("❌ Error during shutdown:", err.message);
+    process.exit(1);
+  }
+}
+
+// --------------------------------------------------
+// Start server
+// --------------------------------------------------
+async function startServer() {
+  try {
+    // Works whether connectDB takes MONGO_URI arg
+    // or reads process.env internally
     await connectDB(process.env.MONGO_URI);
 
     const server = app.listen(PORT, () => {
+      console.log("======================================");
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`✅ Deploy version: ${DEPLOY_VERSION}`);
-      console.log("✅ Allowed CORS origins:", allowedOrigins);
-      console.log("✅ Netlify previews allowed:", true);
-      console.log("✅ Vercel previews allowed:", true);
+      console.log("✅ MongoDB connected");
       console.log("✅ Products route mounted at: /api/products");
       console.log("✅ Upload route mounted at: /api/upload");
+      console.log("✅ Netlify preview domains allowed");
+      console.log("✅ Vercel preview domains allowed");
+      console.log("✅ Allowed CORS origins:", allowedOrigins);
+      console.log("======================================");
     });
 
-    const shutdown = async (signal) => {
-      console.log(`\n🛑 ${signal} received. Shutting down gracefully...`);
-      try {
-        const mongoose = require("mongoose");
-        await mongoose.connection.close();
-        server.close(() => process.exit(0));
-      } catch (e) {
-        console.log("❌ Error during shutdown:", e.message);
-        process.exit(1);
-      }
-    };
-
-    process.on("SIGINT", () => shutdown("SIGINT"));
-    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => gracefulShutdown("SIGINT", server));
+    process.on("SIGTERM", () => gracefulShutdown("SIGTERM", server));
   } catch (err) {
-    console.log("❌ Failed to start server:", err.message);
+    console.error("❌ Failed to start server:", err.message);
     process.exit(1);
   }
-})();
+}
+
+startServer();
