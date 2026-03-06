@@ -4,6 +4,59 @@ const router = express.Router();
 
 /*
 ============================================
+PRODUCT ROUTES
+============================================
+Includes:
+- GET all products
+- GET single product by id
+- SEED products
+============================================
+*/
+
+// ============================================
+// GET ALL PRODUCTS
+// URL: /api/products
+// ============================================
+router.get("/", async (req, res) => {
+  try {
+    const products = await Product.find({}).sort({ createdAt: -1, _id: -1 });
+    res.status(200).json(products);
+  } catch (err) {
+    console.error("GET /api/products error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch products",
+    });
+  }
+});
+
+// ============================================
+// GET SINGLE PRODUCT
+// URL: /api/products/:id
+// ============================================
+router.get("/:id", async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    res.status(200).json(product);
+  } catch (err) {
+    console.error(`GET /api/products/${req.params.id} error:`, err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch product",
+    });
+  }
+});
+
+/*
+============================================
 PRODUCTS SEED
 ============================================
 - Clean reset
@@ -33,7 +86,14 @@ router.post("/seed", async (req, res) => {
           "https://res.cloudinary.com/drlcmjc8n/image/upload/f_auto,q_auto/v1772655001/paplet2_ufc5es.jpg",
           "https://res.cloudinary.com/drlcmjc8n/image/upload/f_auto,q_auto/v1772655008/paplet3_x56mzk.jpg",
         ],
-        cuttingOptions: ["Whole", "Cleaned Whole", "Curry Cut", "Fry Cut", "Fillet", "Boneless"],
+        cuttingOptions: [
+          "Whole",
+          "Cleaned Whole",
+          "Curry Cut",
+          "Fry Cut",
+          "Fillet",
+          "Boneless",
+        ],
         nutrition: {
           protein: "18g",
           fat: "4g",
@@ -46,14 +106,20 @@ router.post("/seed", async (req, res) => {
         name: "Black Pomfret (Halwa)",
         price: 520,
         category: "Saltwater Fish",
-        description: "Black pomfret (Halwa) — rich taste, great for fry and curry.",
+        description: "Black pomfret (Halwa) rich taste, great for fry and curry.",
         image: "https://kolifish.com/images/black-pomfret.jpg",
         images: [
           "https://kolifish.com/images/black-pomfret.jpg",
           "https://kolifish.com/images/black-pomfret.jpg",
           "https://kolifish.com/images/black-pomfret.jpg",
         ],
-        cuttingOptions: ["Whole", "Cleaned Whole", "Curry Cut", "Fry Cut", "Fillet"],
+        cuttingOptions: [
+          "Whole",
+          "Cleaned Whole",
+          "Curry Cut",
+          "Fry Cut",
+          "Fillet",
+        ],
         nutrition: {
           protein: "17g",
           fat: "5g",
@@ -66,7 +132,7 @@ router.post("/seed", async (req, res) => {
         name: "Mackerel (Bangda)",
         price: 240,
         category: "Saltwater Fish",
-        description: "Mumbai favorite Bangda — best for fry, rava fry and curry.",
+        description: "Mumbai favorite Bangda, best for fry, rava fry and curry.",
         image: "https://kolifish.com/images/mackerel.jpg",
         images: [
           "https://kolifish.com/images/mackerel.jpg",
@@ -86,7 +152,7 @@ router.post("/seed", async (req, res) => {
         name: "Sardine (Tarli)",
         price: 220,
         category: "Saltwater Fish",
-        description: "Tarli — soft, flavorful, ideal for spicy curry and fry.",
+        description: "Tarli soft, flavorful, ideal for spicy curry and fry.",
         image: "https://kolifish.com/images/sardine.jpg",
         images: [
           "https://kolifish.com/images/sardine.jpg",
@@ -106,14 +172,21 @@ router.post("/seed", async (req, res) => {
         name: "Surmai (King Fish)",
         price: 720,
         category: "Saltwater Fish",
-        description: "Surmai steaks — firm texture, premium taste.",
+        description: "Surmai steaks with firm texture and premium taste.",
         image: "https://kolifish.com/images/surmai.jpg",
         images: [
           "https://kolifish.com/images/surmai.jpg",
           "https://kolifish.com/images/surmai.jpg",
           "https://kolifish.com/images/surmai.jpg",
         ],
-        cuttingOptions: ["Whole", "Steak Cut", "Curry Cut", "Fry Cut", "Fillet", "Boneless"],
+        cuttingOptions: [
+          "Whole",
+          "Steak Cut",
+          "Curry Cut",
+          "Fry Cut",
+          "Fillet",
+          "Boneless",
+        ],
         nutrition: {
           protein: "21g",
           fat: "6g",
@@ -126,14 +199,21 @@ router.post("/seed", async (req, res) => {
         name: "Rawas (Indian Salmon)",
         price: 780,
         category: "Saltwater Fish",
-        description: "Rawas — soft & juicy, perfect for tawa fry.",
+        description: "Rawas soft and juicy, perfect for tawa fry.",
         image: "https://kolifish.com/images/rawas.jpg",
         images: [
           "https://kolifish.com/images/rawas.jpg",
           "https://kolifish.com/images/rawas.jpg",
           "https://kolifish.com/images/rawas.jpg",
         ],
-        cuttingOptions: ["Whole", "Steak Cut", "Curry Cut", "Fry Cut", "Fillet", "Boneless"],
+        cuttingOptions: [
+          "Whole",
+          "Steak Cut",
+          "Curry Cut",
+          "Fry Cut",
+          "Fillet",
+          "Boneless",
+        ],
         nutrition: {
           protein: "20g",
           fat: "8g",
@@ -146,7 +226,7 @@ router.post("/seed", async (req, res) => {
         name: "Bombay Duck (Bombil)",
         price: 220,
         category: "Saltwater Fish",
-        description: "Bombil — crispy fry favorite.",
+        description: "Bombil crispy fry favorite.",
         image: "https://kolifish.com/images/bombay-duck.jpg",
         images: [
           "https://kolifish.com/images/bombay-duck.jpg",
@@ -165,13 +245,20 @@ router.post("/seed", async (req, res) => {
         name: "Tuna (Kupa)",
         price: 420,
         category: "Saltwater Fish",
-        description: "Kupa — meaty fish ideal for curry.",
+        description: "Kupa meaty fish ideal for curry.",
         image: "https://kolifish.com/images/tuna.jpg",
         images: [
           "https://kolifish.com/images/tuna.jpg",
           "https://kolifish.com/images/tuna.jpg",
         ],
-        cuttingOptions: ["Whole", "Steak Cut", "Curry Cut", "Fry Cut", "Fillet", "Boneless"],
+        cuttingOptions: [
+          "Whole",
+          "Steak Cut",
+          "Curry Cut",
+          "Fry Cut",
+          "Fillet",
+          "Boneless",
+        ],
         nutrition: {
           protein: "23g",
           fat: "5g",
@@ -184,7 +271,7 @@ router.post("/seed", async (req, res) => {
         name: "Squid (Kalmar)",
         price: 520,
         category: "Shellfish",
-        description: "Kalmar — tender rings perfect for fry.",
+        description: "Kalmar tender rings perfect for fry.",
         image: "https://kolifish.com/images/squid.jpg",
         images: [
           "https://kolifish.com/images/squid.jpg",
@@ -203,7 +290,7 @@ router.post("/seed", async (req, res) => {
         name: "Octopus (Bebdo)",
         price: 650,
         category: "Shellfish",
-        description: "Bebdo — cleaned octopus for slow cooking.",
+        description: "Bebdo cleaned octopus for slow cooking.",
         image: "https://kolifish.com/images/octopus.jpg",
         images: [
           "https://kolifish.com/images/octopus.jpg",
@@ -222,16 +309,22 @@ router.post("/seed", async (req, res) => {
       // SHELLFISH
       // ============================================
       {
-        name: "Prawns (Kolambi) — Medium",
+        name: "Prawns (Kolambi) - Medium",
         price: 540,
         category: "Shellfish",
-        description: "Medium Kolambi — perfect for curry and biryani.",
+        description: "Medium Kolambi perfect for curry and biryani.",
         image: "https://kolifish.com/images/prawns-medium.jpg",
         images: [
           "https://kolifish.com/images/prawns-medium.jpg",
           "https://kolifish.com/images/prawns-medium.jpg",
         ],
-        cuttingOptions: ["Whole", "Cleaned", "Peeled", "Peeled & Deveined", "Boneless"],
+        cuttingOptions: [
+          "Whole",
+          "Cleaned",
+          "Peeled",
+          "Peeled & Deveined",
+          "Boneless",
+        ],
         nutrition: {
           protein: "24g",
           fat: "1g",
@@ -241,16 +334,22 @@ router.post("/seed", async (req, res) => {
       },
 
       {
-        name: "Prawns (Kolambi) — Large",
+        name: "Prawns (Kolambi) - Large",
         price: 780,
         category: "Shellfish",
-        description: "Large Kolambi — premium size prawns.",
+        description: "Large Kolambi premium size prawns.",
         image: "https://kolifish.com/images/prawns-large.jpg",
         images: [
           "https://kolifish.com/images/prawns-large.jpg",
           "https://kolifish.com/images/prawns-large.jpg",
         ],
-        cuttingOptions: ["Whole", "Cleaned", "Peeled", "Peeled & Deveined", "Boneless"],
+        cuttingOptions: [
+          "Whole",
+          "Cleaned",
+          "Peeled",
+          "Peeled & Deveined",
+          "Boneless",
+        ],
         nutrition: {
           protein: "24g",
           fat: "1g",
@@ -263,7 +362,7 @@ router.post("/seed", async (req, res) => {
         name: "Crab (Chimbori)",
         price: 480,
         category: "Shellfish",
-        description: "Chimbori — meaty crab perfect for spicy curry.",
+        description: "Chimbori meaty crab perfect for spicy curry.",
         image: "https://kolifish.com/images/crab.jpg",
         images: [
           "https://kolifish.com/images/crab.jpg",
@@ -282,7 +381,7 @@ router.post("/seed", async (req, res) => {
         name: "Clams (Tisrya)",
         price: 260,
         category: "Shellfish",
-        description: "Tisrya — traditional coastal seafood.",
+        description: "Tisrya traditional coastal seafood.",
         image: "https://kolifish.com/images/clams.jpg",
         images: [
           "https://kolifish.com/images/clams.jpg",
@@ -301,7 +400,7 @@ router.post("/seed", async (req, res) => {
         name: "Mussels (Khube)",
         price: 320,
         category: "Shellfish",
-        description: "Khube — cleaned mussels for coconut curries.",
+        description: "Khube cleaned mussels for coconut curries.",
         image: "https://kolifish.com/images/mussels.jpg",
         images: [
           "https://kolifish.com/images/mussels.jpg",
@@ -342,7 +441,7 @@ router.post("/seed", async (req, res) => {
         name: "Catla (Katla)",
         price: 190,
         category: "Freshwater Fish",
-        description: "Katla — thick cuts ideal for meals.",
+        description: "Katla thick cuts ideal for meals.",
         image: "https://kolifish.com/images/catla.jpg",
         images: [
           "https://kolifish.com/images/catla.jpg",
@@ -380,7 +479,7 @@ router.post("/seed", async (req, res) => {
         name: "Pangasius (Basa)",
         price: 210,
         category: "Freshwater Fish",
-        description: "Basa — boneless fillet fish.",
+        description: "Basa boneless fillet fish.",
         image: "https://kolifish.com/images/basa.jpg",
         images: [
           "https://kolifish.com/images/basa.jpg",
@@ -418,13 +517,18 @@ router.post("/seed", async (req, res) => {
     await Product.deleteMany({});
     const inserted = await Product.insertMany(products);
 
-    res.json({
+    res.status(200).json({
+      success: true,
       message: "Products seeded successfully",
       count: inserted.length,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Seed failed" });
+    console.error("POST /api/products/seed error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Seed failed",
+      error: err.message,
+    });
   }
 });
 

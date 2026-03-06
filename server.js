@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-const DEPLOY_VERSION = "cors-fix-2026-03-05-01";
+const DEPLOY_VERSION = "api-route-check-2026-03-07-01";
 const connectDB = require("./config/db");
 const productsRoutes = require("./routes/products");
 const uploadRoutes = require("./routes/upload.js");
@@ -17,7 +17,6 @@ app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ----- CORS -----
-// IMPORTANT: We MERGE env origins with defaults (do NOT override defaults)
 const defaultAllowed = [
   "http://localhost:5173",
   "http://localhost:5174",
@@ -31,10 +30,8 @@ const envAllowed = (process.env.CORS_ORIGINS || "")
   .map((s) => s.trim())
   .filter(Boolean);
 
-// Merge + dedupe
 const allowedOrigins = Array.from(new Set([...defaultAllowed, ...envAllowed]));
 
-// Allow any *.netlify.app preview deploys too
 const isNetlify = (origin) => {
   try {
     const u = new URL(origin);
@@ -44,18 +41,27 @@ const isNetlify = (origin) => {
   }
 };
 
+const isVercel = (origin) => {
+  try {
+    const u = new URL(origin);
+    return u.hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+};
+
 const corsOptions = {
   origin: (origin, cb) => {
-    // allow requests with no origin (curl/postman/server-to-server)
     if (!origin) return cb(null, true);
 
-    // allow known origins + netlify previews
-    if (allowedOrigins.includes(origin) || isNetlify(origin)) {
+    if (
+      allowedOrigins.includes(origin) ||
+      isNetlify(origin) ||
+      isVercel(origin)
+    ) {
       return cb(null, true);
     }
 
-    // IMPORTANT: throw an error so you can SEE which origin is blocked,
-    // and avoid the "no CORS header" confusion.
     return cb(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
@@ -64,13 +70,18 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-// Apply CORS BEFORE routes
 app.use(cors(corsOptions));
-
-// Preflight handling for all routes
 app.options("*", cors(corsOptions));
 
-// ----- Routes -----
+// ----- Basic routes -----
+app.get("/", (req, res) => {
+  res.json({
+    ok: true,
+    message: "KoliFish backend is running",
+    version: DEPLOY_VERSION,
+  });
+});
+
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
@@ -80,11 +91,12 @@ app.get("/api/health", (req, res) => {
     cors_origins: allowedOrigins,
   });
 });
+
+// ----- API routes -----
 app.use("/api/products", productsRoutes);
 app.use("/api/upload", uploadRoutes);
 
 // ----- Errors -----
-// Handle CORS error nicely (so frontend gets a clear message)
 app.use((err, req, res, next) => {
   if (err && err.message && err.message.startsWith("CORS blocked")) {
     return res.status(403).json({ success: false, message: err.message });
@@ -104,8 +116,12 @@ const PORT = process.env.PORT || 5000;
 
     const server = app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`✅ Deploy version: ${DEPLOY_VERSION}`);
       console.log("✅ Allowed CORS origins:", allowedOrigins);
-      console.log("✅ Netlify *.netlify.app allowed:", true);
+      console.log("✅ Netlify previews allowed:", true);
+      console.log("✅ Vercel previews allowed:", true);
+      console.log("✅ Products route mounted at: /api/products");
+      console.log("✅ Upload route mounted at: /api/upload");
     });
 
     const shutdown = async (signal) => {
